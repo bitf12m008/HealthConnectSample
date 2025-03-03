@@ -8,7 +8,6 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.StepsRecord
 
 class HealthConnectManager(private val context: Context) {
-    // Lazy initialization of HealthConnectClient
     val healthConnectClient: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
     suspend fun hasAllPermissions(): Boolean =
@@ -19,7 +18,6 @@ class HealthConnectManager(private val context: Context) {
     }
 }
 
-// ✅ Removed trailing comma
 val PERMISSIONS = setOf(
     HealthPermission.getReadPermission(StepsRecord::class),
     HealthPermission.getWritePermission(StepsRecord::class)

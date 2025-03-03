@@ -8,6 +8,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -17,11 +19,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main) // Ensure XML is set
+        setContentView(R.layout.activity_main)
 
         healthConnectManager = HealthConnectManager(this)
 
-        // Register the permission contract
         permissionLauncher =
             registerForActivityResult(healthConnectManager.requestPermissionsActivityContract()) { grantedPermissions ->
                 if (grantedPermissions.containsAll(PERMISSIONS)) {
@@ -31,10 +32,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-        // Find Button and Set Click Listener
         val btnSaveSteps = findViewById<Button>(R.id.btnWriteSteps)
         btnSaveSteps.setOnClickListener {
-            checkAndRequestPermissions() // Request permission on button click
+            checkAndRequestPermissions()
         }
     }
 
@@ -49,7 +49,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onPermissionsGranted() {
-        saveSteps(1000) // Example: Save 1000 steps after permission granted
+        Log.e("HealthConnect", "Permission granted! Saving steps.")
+        saveSteps(1000)
     }
 
     private fun onPermissionsDenied() {
@@ -70,7 +71,7 @@ class MainActivity : AppCompatActivity() {
                     endZoneOffset = ZoneOffset.UTC
                 )
 
-                client.insertRecords(listOf(stepsRecord)) // Use insertRecords()
+                client.insertRecords(listOf(stepsRecord))
 
                 Log.d("HealthConnect", "Steps saved successfully!")
             } catch (e: Exception) {
