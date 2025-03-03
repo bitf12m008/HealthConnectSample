@@ -37,7 +37,11 @@ class MainActivity : AppCompatActivity() {
 
         val btnSaveWorkout = findViewById<Button>(R.id.btnSaveWorkout)
         btnSaveWorkout.setOnClickListener {
-            checkAndRequestPermissions()
+            if (!healthConnectManager.isHealthConnectAvailable()) {
+                healthConnectManager.promptInstallHealthConnect()
+            } else {
+                checkAndRequestPermissions()
+            }
         }
     }
 
