@@ -25,7 +25,7 @@ The following permissions are required in `AndroidManifest.xml`:
 ## Installation
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-repo/health-connect-app.git
+   git clone https://github.com/bitf12m008/HealthConnectSample.git
    ```
 2. Open the project in Android Studio.
 3. Build and run the app on a physical device or emulator with Health Connect installed.
