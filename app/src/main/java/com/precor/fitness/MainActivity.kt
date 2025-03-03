@@ -3,6 +3,7 @@ package com.precor.fitness
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
 import androidx.health.connect.client.records.DistanceRecord
@@ -67,6 +68,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onPermissionsDenied() {
         Log.e("HealthConnect", "Permission denied! Cannot save workout.")
+        Toast.makeText(this, "Permission denied! Cannot save workout.", Toast.LENGTH_LONG).show()
     }
 
     private fun saveManualWorkout(
@@ -128,8 +130,10 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 Log.d("HealthConnect", "Manual workout saved successfully!")
+                Toast.makeText(this@MainActivity, "Manual workout saved successfully!", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 Log.e("HealthConnect", "Failed to save manual workout", e)
+                Toast.makeText(this@MainActivity, "Failed to save manual workout", Toast.LENGTH_LONG).show()
             }
         }
     }
