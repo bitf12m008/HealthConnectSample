@@ -5,11 +5,14 @@ import android.util.Log
 import android.widget.Button
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.HeartRateRecord
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.ReadRecordsRequest
-import androidx.health.connect.client.time.TimeRangeFilter
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.units.Energy
+import androidx.health.connect.client.units.Length
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -32,8 +35,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-        val btnSaveSteps = findViewById<Button>(R.id.btnWriteSteps)
-        btnSaveSteps.setOnClickListener {
+        val btnSaveWorkout = findViewById<Button>(R.id.btnSaveWorkout)
+        btnSaveWorkout.setOnClickListener {
             checkAndRequestPermissions()
         }
     }
@@ -49,33 +52,80 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onPermissionsGranted() {
-        Log.e("HealthConnect", "Permission granted! Saving steps.")
-        saveSteps(1000)
+        Log.e("HealthConnect", "Permission granted! Saving workout.")
+        saveManualWorkout(
+            totalDistance = 5000.0,
+            caloriesBurned = 350.0,
+            timeElapsed = 1800,
+            avgHeartRate = 140.0
+        )
     }
 
     private fun onPermissionsDenied() {
-        Log.e("HealthConnect", "Permission denied! Cannot save steps.")
+        Log.e("HealthConnect", "Permission denied! Cannot save workout.")
     }
 
-    private fun saveSteps(stepCount: Long) {
+    private fun saveManualWorkout(
+        totalDistance: Double,
+        caloriesBurned: Double,
+        timeElapsed: Long,
+        avgHeartRate: Double
+    ) {
         lifecycleScope.launch {
             try {
                 val client = healthConnectManager.healthConnectClient
+                val now = Instant.now()
+                val startTime = now.minusSeconds(timeElapsed)
 
-                val stepsRecord = StepsRecord(
+                val distanceRecord = DistanceRecord(
                     metadata = androidx.health.connect.client.records.metadata.Metadata(),
-                    count = stepCount,
-                    startTime = Instant.now().minusSeconds(3600),
+                    distance = Length.meters(totalDistance),
+                    startTime = startTime,
                     startZoneOffset = ZoneOffset.UTC,
-                    endTime = Instant.now(),
+                    endTime = now,
                     endZoneOffset = ZoneOffset.UTC
                 )
 
-                client.insertRecords(listOf(stepsRecord))
+                val caloriesRecord = TotalCaloriesBurnedRecord(
+                    metadata = androidx.health.connect.client.records.metadata.Metadata(),
+                    energy = Energy.kilocalories(caloriesBurned),
+                    startTime = startTime,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endTime = now,
+                    endZoneOffset = ZoneOffset.UTC
+                )
 
-                Log.d("HealthConnect", "Steps saved successfully!")
+                val heartRateRecord = HeartRateRecord(
+                    metadata = androidx.health.connect.client.records.metadata.Metadata(),
+                    samples = listOf(
+                        HeartRateRecord.Sample(
+                            time = startTime.plusSeconds(timeElapsed / 2),
+                            beatsPerMinute = avgHeartRate.toLong()
+                        )
+                    ),
+                    startTime = startTime,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endTime = now,
+                    endZoneOffset = ZoneOffset.UTC
+                )
+
+                val workoutRecord = ExerciseSessionRecord(
+                    metadata = androidx.health.connect.client.records.metadata.Metadata(),
+                    title = "Manual Workout",
+                    startTime = startTime,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endTime = now,
+                    endZoneOffset = ZoneOffset.UTC,
+                    exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_RUNNING
+                )
+
+                client.insertRecords(
+                    listOf(distanceRecord, caloriesRecord, heartRateRecord, workoutRecord)
+                )
+
+                Log.d("HealthConnect", "Manual workout saved successfully!")
             } catch (e: Exception) {
-                Log.e("HealthConnect", "Failed to save steps", e)
+                Log.e("HealthConnect", "Failed to save manual workout", e)
             }
         }
     }
