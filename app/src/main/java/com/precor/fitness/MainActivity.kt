@@ -1,5 +1,6 @@
 package com.precor.fitness
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -20,6 +21,7 @@ import java.time.ZoneOffset
 class MainActivity : AppCompatActivity() {
     private lateinit var healthConnectManager: HealthConnectManager
     private lateinit var permissionLauncher: ActivityResultLauncher<Set<String>>
+    private var pendingIntent: Intent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,10 +40,34 @@ class MainActivity : AppCompatActivity() {
 
         val btnSaveWorkout = findViewById<Button>(R.id.btnSaveWorkout)
         btnSaveWorkout.setOnClickListener {
-            if (!healthConnectManager.isHealthConnectAvailable()) {
-                healthConnectManager.promptInstallHealthConnect()
-            } else {
-                checkAndRequestPermissions()
+            Toast.makeText(this@MainActivity, "Scan QR Code to save workout data.", Toast.LENGTH_LONG).show()
+        }
+
+        if (intent.action == Intent.ACTION_VIEW) {
+            pendingIntent = intent
+            checkAndRequestPermissions()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent?.action == Intent.ACTION_VIEW) {
+            pendingIntent = intent
+            checkAndRequestPermissions()
+        }
+    }
+
+    private fun handleIntent(intent: Intent) {
+        if (intent.action == Intent.ACTION_VIEW) {
+            intent.data?.let { uri ->
+                val totalDistance = uri.getQueryParameter("totalDistance")?.toDoubleOrNull() ?: 0.0
+                val caloriesBurned = uri.getQueryParameter("caloriesBurned")?.toDoubleOrNull() ?: 0.0
+                val timeElapsed = uri.getQueryParameter("timeElapsed")?.toLongOrNull() ?: 0L
+                val avgHeartRate = uri.getQueryParameter("avgHeartRate")?.toDoubleOrNull() ?: 0.0
+                val workoutTitle = uri.getQueryParameter("workoutTitle") ?: "Unknown Workout"
+
+
+                saveManualWorkout(totalDistance, caloriesBurned, timeElapsed, avgHeartRate, workoutTitle)
             }
         }
     }
@@ -58,12 +84,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun onPermissionsGranted() {
         Log.e("HealthConnect", "Permission granted! Saving workout.")
-        saveManualWorkout(
-            totalDistance = 5000.0,
-            caloriesBurned = 350.0,
-            timeElapsed = 1800,
-            avgHeartRate = 140.0
-        )
+        pendingIntent?.let { handleIntent(it) }
+        pendingIntent = null
     }
 
     private fun onPermissionsDenied() {
@@ -75,7 +97,8 @@ class MainActivity : AppCompatActivity() {
         totalDistance: Double,
         caloriesBurned: Double,
         timeElapsed: Long,
-        avgHeartRate: Double
+        avgHeartRate: Double,
+        workoutTitle: String,
     ) {
         lifecycleScope.launch {
             try {
@@ -117,7 +140,7 @@ class MainActivity : AppCompatActivity() {
 
                 val workoutRecord = ExerciseSessionRecord(
                     metadata = androidx.health.connect.client.records.metadata.Metadata(),
-                    title = "Manual Workout",
+                    title = workoutTitle,
                     startTime = startTime,
                     startZoneOffset = ZoneOffset.UTC,
                     endTime = now,
@@ -129,8 +152,8 @@ class MainActivity : AppCompatActivity() {
                     listOf(distanceRecord, caloriesRecord, heartRateRecord, workoutRecord)
                 )
 
-                Log.d("HealthConnect", "Manual workout saved successfully!")
-                Toast.makeText(this@MainActivity, "Manual workout saved successfully!", Toast.LENGTH_LONG).show()
+                Log.d("HealthConnect", "$workoutTitle workout saved successfully!")
+                Toast.makeText(this@MainActivity, "$workoutTitle workout saved successfully!", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 Log.e("HealthConnect", "Failed to save manual workout", e)
                 Toast.makeText(this@MainActivity, "Failed to save manual workout", Toast.LENGTH_LONG).show()
